@@ -30,9 +30,9 @@ def draw_hsv(flow):
     return img_bgr
 """
 
-video_capture = cv2.VideoCapture('./primeri/synth_vid3/%4d.jpg')
-#video_capture = cv2.VideoCapture('./primeri/synth_vid1/frame.%4d.jpg')
-""" # Manual load video
+#video_capture = cv2.VideoCapture('./primeri/synth_vid4/%4d.jpg')
+#video_capture = cv2.VideoCapture('./primeri/synth_vid2/frame.%4d.jpg')
+#""" # Manual load video
 image_folder = pathlib.Path('./primeri/vid1/')
 image_paths = sorted(image_folder.glob('frame_*.jpg'))
 video_seq = []
@@ -44,8 +44,8 @@ for image_path in image_paths:
     video_seq.append(img)
 if not video_seq:
     raise ValueError("No images were loaded. Check the file path and naming pattern.")
-"""
-#""" # Load video with cv2.VideoCapture
+#"""
+""" # Load video with cv2.VideoCapture
 video_seq = []
 while True:
     f, img = video_capture.read()
@@ -57,7 +57,7 @@ while True:
     # cv2.waitKey(10)
 # zapremo okno
 cv2.destroyAllWindows()
-#"""
+"""
 
 video = np.array(video_seq)[:, :, :, (2, 1, 0)]
 #video = np.array([cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) for frame in video_seq]) #grayscale
@@ -68,7 +68,7 @@ video = video.astype(np.float32) / 255
 
 slika_bg = video.mean(0)
 
-prag = 0.042 # vid1 -> 0.1, vid2 -> 0.29, vid3 -> 0.042
+prag = 0.22 # synt_vid1 -> 0.1, synt_vid2 -> 0.29, synt_vid3 -> 0.042, synt_vid4 -> 0.08, vid1 -> 0.22, vid2 -> 0.205
 
 video_diff = []
 #plt.figure()
@@ -77,7 +77,7 @@ for n in range(video.shape[0]):
     slika_diff = np.abs(slika-slika_bg).mean(2) 
     slika_motion_seg = slika_diff>prag
     video_diff.append(slika_motion_seg)
-
+"""
     #plt.clf()
     #plt.subplot(1,2,1)
     #plt.imshow(slika_motion_seg)
@@ -89,7 +89,7 @@ for n in range(video.shape[0]):
     #plt.waitforbuttonpress(0.01)
 
 #plt.close('all')
-
+"""
 
 
 """ #almost working bg removal
@@ -140,9 +140,8 @@ plt.close('all')
 video_diff = np.array(video_diff)
 
 # Optical flow visualization
-# Optical flow visualization
 plt.figure()
-for n in range(video.shape[0] - 1):
+for n in range(video_diff.shape[0] - 1):
     slika_0 = video_diff[n]
     slika_1 = video_diff[n + 1]
 
@@ -165,7 +164,7 @@ for n in range(video.shape[0] - 1):
     
     plt.clf()
     plt.subplot(221)
-    plt.imshow(slika_0, cmap='gray')
+    plt.imshow(video[n])
     plt.subplot(222)
     plt.imshow(slika_1, cmap='gray')
     plt.subplot(223)
@@ -175,6 +174,9 @@ for n in range(video.shape[0] - 1):
     plt.waitforbuttonpress(0.01)
 
 plt.close('all')
+
+
+
 """
 plt.clf()
 plt.subplot(1,1,1)
@@ -184,7 +186,6 @@ plt.title('posnetek')
 plt.draw()
 plt.show()
 """
-
 """
 plt.close('all')
 noBgVideo = np.array(noBgVideoSeq)
@@ -201,7 +202,6 @@ for n in range(noBgVideo.shape[0]):
 
 plt.close('all')
 """
-
 """
 slika_bg = video.mean(0)
 
