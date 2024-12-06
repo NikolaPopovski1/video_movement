@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import cv2
 import skimage.registration as skreg
 
-#"""
+"""
 def draw_flow(img, flow, step=16):
     h, w = img.shape[:2]
     y, x = np.mgrid[step / 2:h:step, step / 2:w:step].reshape(2, -1).astype(int)
@@ -28,10 +28,10 @@ def draw_hsv(flow):
     hsv[..., 2] = np.minimum(v * 16, 255).astype(np.uint8)
     img_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
     return img_bgr
-#"""
+"""
 
-video_capture = cv2.VideoCapture('./primeri/synth_vid4/%4d.jpg')
-#video_capture = cv2.VideoCapture('./primeri/synth_vid4/%4d.jpg')
+#video_capture = cv2.VideoCapture('./primeri/synth_vid3/%4d.jpg')
+video_capture = cv2.VideoCapture('./primeri/synth_vid2/frame.%4d.jpg')
 """ # Manual load video
 image_folder = pathlib.Path('./primeri/vid1/')
 image_paths = sorted(image_folder.glob('frame_*.jpg'))
@@ -63,44 +63,144 @@ video = np.array(video_seq)[:, :, :, (2, 1, 0)] # BGR v RGB
 #video = np.array([cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) for frame in video_seq]) #grayscale
 
 video = video.astype(np.float32) / 255
+
+
+
 slika_bg = video.mean(0)
 
-#""" # OpenCV bg removal
+prag = 0.29 # vid1 -> 0.1, vid2 -> 0.29, vid3 -> 0.042
+
+video_diff = []
+#plt.figure()
+for n in range(video.shape[0]):
+    slika = video[n]
+    slika_diff = np.abs(slika-slika_bg).mean(2) 
+    slika_motion_seg = slika_diff>prag
+    video_diff.append(slika_motion_seg)
+
+    #plt.clf()
+    #plt.subplot(1,2,1)
+    #plt.imshow(slika_motion_seg)
+    #plt.title('slika ozadja')
+    #plt.subplot(1,2,2)
+    #plt.imshow(slika)
+    #plt.title('slika ozadja')
+    #plt.draw()
+    #plt.waitforbuttonpress(0.01)
+
+#plt.close('all')
+
+
+
+""" #almost working bg removal
 bg_sub_obj = cv2.createBackgroundSubtractorMOG2()
 
+# Initialize background image as a floating-point array
+buki = None
+
+# Process each frame and update the background
 plt.figure()
-slikaPrev = np.uint8(video[0]*255)
 for n in range(video.shape[0]):
-    slika = np.uint8(video[n]*255)
-    # opencv je malo razvajen, hoče imeti zelo specifične tipe, da deluje pravilno
-    slika_motion_seg_prev = bg_sub_obj.apply(slikaPrev)
-    slika_motion_seg = bg_sub_obj.apply(slika)
-    slika_motion_bg = bg_sub_obj.getBackgroundImage()
-    flow = cv2.calcOpticalFlowFarneback(slika_motion_seg_prev, slika_motion_seg, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-    slikaPrev = slika
+    slika = np.uint8(video[n] * 255)  # Convert video frame to 8-bit
+    slika_motion_seg = bg_sub_obj.apply(slika)  # Segment moving parts
+    slika_motion_bg = bg_sub_obj.getBackgroundImage()  # Background image
+    
+    # Convert background image to the same scale as `video`
+    if slika_motion_bg is not None:
+        buki = slika_motion_bg.astype(np.float32) / 255  # Normalize to 0-1 range
+
+# Ensure buki is available
+if buki is None:
+    raise ValueError("Background model failed to initialize properly.")
+
+# Threshold and display differences
+prag = 0.1
+for n in range(video.shape[0]):
+    slika = video[n]
+    slika_diff = np.abs(slika - buki).mean(2)  # Average over color channels
+    slika_motion_seg = slika_diff > prag
+
     plt.clf()
-    plt.subplot(1,2,1)
-    #plt.imshow(slika)
-    plt.imshow(draw_flow(slika, flow))
-    plt.title('posnetek')
-    # plt.subplot(1,3,2)
-    # plt.imshow(slika_motion_bg)
-    # plt.title('slika ozadja')
-    plt.subplot(1,2,2)
-    #plt.imshow(slika_motion_seg)
-    plt.imshow(draw_hsv(flow))
-    plt.title('segmenti gibanja')
-    #plt.draw()
+    plt.subplot(1,3,1)
+    plt.imshow(slika_motion_seg)
+    plt.title('slika izreza')
+    plt.subplot(1,3,2)
+    plt.imshow(slika)
+    plt.title('slika ozadja')
+    plt.subplot(1,3,3)
+    plt.imshow(buki)
+    plt.title('slika ozadja')
+    plt.draw()
     plt.waitforbuttonpress(0.01)
 
 plt.close('all')
-#"""
+"""
 
-""" # Bg removal
+#"""
+video_diff = np.array(video_diff)
+
+# Optical flow visualization
+plt.figure()
+for n in range(video_diff.shape[0] - 1):
+    slika_0 = video_diff[n]
+    slika_1 = video_diff[n + 1]
+
+    # Compute optical flow
+    flow = cv2.calcOpticalFlowFarneback(slika_0.astype(np.float32), slika_1.astype(np.float32), None, 0.5, 3, 15, 3, 5, 1.2, 0)
+
+    mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+
+    opt_flow_vis_hsv = np.zeros(mag.shape + (3,), dtype=np.uint8)
+    opt_flow_vis_hsv[:, :, 0] = ang * 180 / np.pi / 2
+    opt_flow_vis_hsv[:, :, 1] = (mag / mag.max()) ** 0.2 * 255
+    opt_flow_vis_hsv[:, :, 2] = (mag / mag.max()) ** 0.2 * 255
+    opt_flow_vis = cv2.cvtColor(opt_flow_vis_hsv, cv2.COLOR_HSV2RGB)
+    
+    plt.clf()
+    plt.subplot(221)
+    plt.imshow(slika_0, cmap='gray')
+    plt.subplot(222)
+    plt.imshow(video[n])
+    plt.subplot(223)
+    plt.imshow(opt_flow_vis)
+
+    plt.draw()
+    plt.waitforbuttonpress(0.01)
+
+plt.close('all')
+"""
+plt.clf()
+plt.subplot(1,1,1)
+plt.imshow(buki)
+plt.title('posnetek')
+
+plt.draw()
+plt.show()
+"""
+
+"""
+plt.close('all')
+noBgVideo = np.array(noBgVideoSeq)
+for n in range(noBgVideo.shape[0]):
+    slika = np.uint8(noBgVideo[n]*255)
+    
+    plt.clf()
+    plt.subplot(1,1,1)
+    plt.imshow(slika)
+    plt.title('posnetek')
+    
+    plt.draw()
+    plt.waitforbuttonpress(0.01)
+
+plt.close('all')
+"""
+
+"""
+slika_bg = video.mean(0)
+
 n=31
 slika = video[n]
-slika_diff = np.abs(slika - slika_bg).mean(2) # povprecje po barvah, ce imamo barve
-#slika_diff = np.abs(slika - slika_bg) # povprecje po grayscale
+slika_diff = np.abs(slika-slika_bg).mean(2) # povprecje po barvah, ce imamo barve
 
 plt.figure()
 plt.subplot(221)
@@ -113,7 +213,6 @@ plt.title(f'slika {n}')
 plt.axis('off')
 plt.subplot(223)
 plt.imshow(slika_diff)
-#plt.imshow(slika_diff, cmap='gray') # če želimo sivinsko sliko
 plt.title('slika razlik')
 plt.axis('off')
 plt.subplot(224)
@@ -124,13 +223,11 @@ prag = 0.4
 plt.figure()
 for n in range(video.shape[0]):
     slika = video[n]
-    slika_diff = np.abs(slika - slika_bg).mean(2) # povprecje po barvah, ce imamo barve
-    #slika_diff = np.abs(slika-slika_bg) # povprecje po grayscale
+    slika_diff = np.abs(slika-slika_bg).mean(2) 
     slika_motion_seg = slika_diff>prag
 
     plt.clf()
     plt.imshow(slika_motion_seg)
-    #plt.imshow(slika_motion_seg, cmap='gray') # če želimo sivinsko sliko
     plt.draw()
     plt.waitforbuttonpress(0.01)
 
