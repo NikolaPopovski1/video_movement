@@ -30,8 +30,8 @@ def draw_hsv(flow):
     return img_bgr
 """
 
-#video_capture = cv2.VideoCapture('./primeri/synth_vid3/%4d.jpg')
-video_capture = cv2.VideoCapture('./primeri/synth_vid2/frame.%4d.jpg')
+video_capture = cv2.VideoCapture('./primeri/synth_vid3/%4d.jpg')
+#video_capture = cv2.VideoCapture('./primeri/synth_vid2/frame.%4d.jpg')
 """ # Manual load video
 image_folder = pathlib.Path('./primeri/vid1/')
 image_paths = sorted(image_folder.glob('frame_*.jpg'))
@@ -68,7 +68,7 @@ video = video.astype(np.float32) / 255
 
 slika_bg = video.mean(0)
 
-prag = 0.29 # vid1 -> 0.1, vid2 -> 0.29, vid3 -> 0.042
+prag = 0.042 # vid1 -> 0.1, vid2 -> 0.29, vid3 -> 0.042
 
 video_diff = []
 #plt.figure()
