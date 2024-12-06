@@ -30,8 +30,8 @@ def draw_hsv(flow):
     return img_bgr
 """
 
-#video_capture = cv2.VideoCapture('./primeri/synth_vid3/%4d.jpg')
-video_capture = cv2.VideoCapture('./primeri/synth_vid2/frame.%4d.jpg')
+video_capture = cv2.VideoCapture('./primeri/synth_vid3/%4d.jpg')
+#video_capture = cv2.VideoCapture('./primeri/synth_vid1/frame.%4d.jpg')
 """ # Manual load video
 image_folder = pathlib.Path('./primeri/vid1/')
 image_paths = sorted(image_folder.glob('frame_*.jpg'))
@@ -59,7 +59,7 @@ while True:
 cv2.destroyAllWindows()
 #"""
 
-video = np.array(video_seq)
+video = np.array(video_seq)[:, :, :, (2, 1, 0)]
 #video = np.array([cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) for frame in video_seq]) #grayscale
 
 video = video.astype(np.float32) / 255
@@ -68,7 +68,7 @@ video = video.astype(np.float32) / 255
 
 slika_bg = video.mean(0)
 
-prag = 0.29 # vid1 -> 0.1, vid2 -> 0.29, vid3 -> 0.042
+prag = 0.042 # vid1 -> 0.1, vid2 -> 0.29, vid3 -> 0.042
 
 video_diff = []
 #plt.figure()
@@ -143,12 +143,14 @@ video_diff = np.array(video_diff)
 # Optical flow visualization
 plt.figure()
 for n in range(video.shape[0] - 1):
-    slika_0 = video[n]
-    slika_1 = video[n + 1]
+    slika_0 = video_diff[n]
+    slika_1 = video_diff[n + 1]
 
     # Convert frames to grayscale
-    slika_0_gray = cv2.cvtColor((slika_0 * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
-    slika_1_gray = cv2.cvtColor((slika_1 * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
+    #slika_0_gray = cv2.cvtColor((slika_0 * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
+    #slika_1_gray = cv2.cvtColor((slika_1 * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
+    slika_0_gray = (slika_0 * 255).astype(np.uint8)
+    slika_1_gray = (slika_1 * 255).astype(np.uint8) 
 
     # Compute optical flow
     flow = cv2.calcOpticalFlowFarneback(slika_0_gray, slika_1_gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
@@ -158,7 +160,7 @@ for n in range(video.shape[0] - 1):
     opt_flow_vis_hsv = np.zeros(mag.shape + (3,), dtype=np.uint8)
     opt_flow_vis_hsv[:, :, 0] = ang * 180 / np.pi / 2
     opt_flow_vis_hsv[:, :, 1] = 255
-    opt_flow_vis_hsv[:, :, 2] = (mag/mag.max())**0.5*255
+    opt_flow_vis_hsv[:, :, 2] = (mag/mag.max()) ** 0.5 * 255
     opt_flow_vis = cv2.cvtColor(opt_flow_vis_hsv, cv2.COLOR_HSV2RGB)
     
     plt.clf()
